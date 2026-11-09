@@ -1145,6 +1145,36 @@ describe("server.ts supplemental coverage", () => {
       expect(await readSuppressNotificationStream()).toBeUndefined();
     });
 
+    it("rejects a non-boolean cookieJar", async () => {
+      const res = await postSettings({ ...base, cookieJar: "yes" });
+      expect((await res.json()).error).toMatch(/cookieJar/);
+    });
+
+    // Same read-back discipline as #2317 — a 200 only proves the payload
+    // validated; read the entry back so dropping the field from
+    // `normalizeSettings` cannot pass silently.
+    async function readCookieJar() {
+      const res = await fetch(`${h.baseUrl}/api/servers`);
+      const body = (await res.json()) as {
+        mcpServers: Record<string, Record<string, unknown>>;
+      };
+      return body.mcpServers.srv?.cookieJar;
+    }
+
+    it("persists cookieJar through a save", async () => {
+      expect((await postSettings({ ...base, cookieJar: true })).status).toBe(
+        200,
+      );
+      expect(await readCookieJar()).toBe(true);
+    });
+
+    it("writes no cookieJar field when off", async () => {
+      expect((await postSettings({ ...base, cookieJar: false })).status).toBe(
+        200,
+      );
+      expect(await readCookieJar()).toBeUndefined();
+    });
+
     it("rejects a negative maxFetchRequests", async () => {
       const res = await postSettings({ ...base, maxFetchRequests: -2 });
       expect((await res.json()).error).toMatch(/maxFetchRequests/);
