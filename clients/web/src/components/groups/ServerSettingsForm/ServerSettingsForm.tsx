@@ -116,6 +116,8 @@ export interface ServerSettingsFormProps {
   onPaginatedListsChange: (value: boolean) => void;
   /** Toggle the standalone `GET` notification stream suppression (#2317). */
   onSuppressNotificationStreamChange: (value: boolean) => void;
+  /** Toggle the connection-scoped cookie jar for HTTP transports. */
+  onCookieJarChange: (value: boolean) => void;
   /**
    * Toggle whether the Inspector advertises the extension `key` to this server.
    * `checked` is the new advertise state; the modal folds it into
@@ -506,6 +508,7 @@ export function ServerSettingsForm({
   onAutoRefreshChange,
   onPaginatedListsChange,
   onSuppressNotificationStreamChange,
+  onCookieJarChange,
   onAdvertisedExtensionChange,
   rendersApps = true,
   onMaxFetchRequestsChange,
@@ -564,6 +567,10 @@ export function ServerSettingsForm({
   // no-op there (#2317). `auto` keeps it, since it may resolve to legacy.
   const showSuppressNotificationStream =
     serverType === "streamable-http" && configuredEra !== "modern";
+  // The jar applies to any HTTP transport, legacy or modern era, SSE or
+  // Streamable HTTP — affinity load balancers sit in front of both.
+  const showCookieJar =
+    serverType === "streamable-http" || serverType === "sse";
   const showModernLogLevel =
     configuredEra === "modern" ||
     (configuredEra === "auto" && negotiatedEra !== "legacy");
@@ -778,6 +785,14 @@ export function ServerSettingsForm({
                 onChange={(e) =>
                   onSuppressNotificationStreamChange(e.currentTarget.checked)
                 }
+              />
+            ) : null}
+            {showCookieJar ? (
+              <Checkbox
+                label="Enable HTTP Cookie Jar (sticky sessions)"
+                description="When checked, the Inspector stores cookies the server sends via Set-Cookie and replays them on later requests to the same origin. Required to test servers behind load balancers that route by cookie affinity — without it, requests of one MCP session land on different replicas and fail with “Session not found”. Cookies live for the connection only. Takes effect on the next connect."
+                checked={settings.cookieJar ?? false}
+                onChange={(e) => onCookieJarChange(e.currentTarget.checked)}
               />
             ) : null}
             <LogSizeInput

@@ -70,6 +70,7 @@ const baseHandlers = {
   onAutoRefreshChange: vi.fn(),
   onPaginatedListsChange: vi.fn(),
   onSuppressNotificationStreamChange: vi.fn(),
+  onCookieJarChange: vi.fn(),
   onAdvertisedExtensionChange: vi.fn(),
   onMaxFetchRequestsChange: vi.fn(),
   onSkillCatalogLimitChange: vi.fn(),
@@ -532,6 +533,79 @@ describe("ServerSettingsForm", () => {
         ).not.toBeInTheDocument();
       },
     );
+  });
+
+  describe("Cookie Jar (sticky sessions)", () => {
+    const name = /Enable HTTP Cookie Jar/;
+
+    it("is unchecked by default and reflects an explicit true", () => {
+      const { rerender } = renderWithMantine(
+        <ServerSettingsForm
+          {...baseHandlers}
+          settings={emptySettings}
+          expandedSections={["options"]}
+        />,
+      );
+      expect(screen.getByRole("checkbox", { name })).not.toBeChecked();
+      rerender(
+        <ServerSettingsForm
+          {...baseHandlers}
+          settings={{ ...emptySettings, cookieJar: true }}
+          expandedSections={["options"]}
+        />,
+      );
+      expect(screen.getByRole("checkbox", { name })).toBeChecked();
+    });
+
+    it("renders for streamable-http and sse, hidden for stdio", () => {
+      // The jar applies to any HTTP transport, so the toggle shows for both
+      // streamable-http and sse; a stdio server has no HTTP traffic at all.
+      const { rerender } = renderWithMantine(
+        <ServerSettingsForm
+          {...baseHandlers}
+          serverType="streamable-http"
+          isStdio={false}
+          settings={emptySettings}
+          expandedSections={["options"]}
+        />,
+      );
+      expect(screen.getByRole("checkbox", { name })).toBeInTheDocument();
+      rerender(
+        <ServerSettingsForm
+          {...baseHandlers}
+          serverType="sse"
+          isStdio={false}
+          settings={emptySettings}
+          expandedSections={["options"]}
+        />,
+      );
+      expect(screen.getByRole("checkbox", { name })).toBeInTheDocument();
+      rerender(
+        <ServerSettingsForm
+          {...baseHandlers}
+          serverType="stdio"
+          isStdio={true}
+          settings={emptySettings}
+          expandedSections={["options"]}
+        />,
+      );
+      expect(screen.queryByRole("checkbox", { name })).not.toBeInTheDocument();
+    });
+
+    it("invokes onCookieJarChange when toggled", async () => {
+      const user = userEvent.setup();
+      const onCookieJarChange = vi.fn();
+      renderWithMantine(
+        <ServerSettingsForm
+          {...baseHandlers}
+          onCookieJarChange={onCookieJarChange}
+          settings={emptySettings}
+          expandedSections={["options"]}
+        />,
+      );
+      await user.click(screen.getByRole("checkbox", { name }));
+      expect(onCookieJarChange).toHaveBeenCalledWith(true);
+    });
   });
 
   it("renders the Advertised Extensions section with Tasks checked by default", () => {

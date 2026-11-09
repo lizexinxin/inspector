@@ -228,6 +228,14 @@ export function ServerSettingsModal({
     });
   }
 
+  function handleCookieJarChange(value: boolean) {
+    // Omit-when-off, matching the read side and keeping config diffs minimal.
+    onSettingsChange({
+      ...settings,
+      cookieJar: value ? true : undefined,
+    });
+  }
+
   function handleAdvertisedExtensionChange(key: string, checked: boolean) {
     const next = { ...settings.advertisedExtensions };
     const ext = ADVERTISABLE_EXTENSIONS.find((e) => e.key === key);
@@ -333,6 +341,7 @@ export function ServerSettingsModal({
             onSuppressNotificationStreamChange={
               handleSuppressNotificationStreamChange
             }
+            onCookieJarChange={handleCookieJarChange}
             onAdvertisedExtensionChange={handleAdvertisedExtensionChange}
             rendersApps={rendersApps}
             onMaxFetchRequestsChange={handleMaxFetchRequestsChange}

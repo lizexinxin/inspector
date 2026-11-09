@@ -118,6 +118,12 @@ function InteractiveRender(args: ServerSettingsFormProps) {
           settings: { ...args.settings, suppressNotificationStream: value },
         });
       }}
+      onCookieJarChange={(value) => {
+        args.onCookieJarChange(value);
+        updateArgs({
+          settings: { ...args.settings, cookieJar: value },
+        });
+      }}
       onAdvertisedExtensionChange={(key, checked) => {
         args.onAdvertisedExtensionChange(key, checked);
         updateArgs({
@@ -189,6 +195,7 @@ const meta: Meta<typeof ServerSettingsForm> = {
     onAutoRefreshChange: fn(),
     onPaginatedListsChange: fn(),
     onSuppressNotificationStreamChange: fn(),
+    onCookieJarChange: fn(),
     onAdvertisedExtensionChange: fn(),
     onMaxFetchRequestsChange: fn(),
     onSkillCatalogLimitChange: fn(),
@@ -204,6 +211,18 @@ type Story = StoryObj<typeof ServerSettingsForm>;
 export const DefaultSettings: Story = {
   args: {
     settings: defaultSettings,
+  },
+};
+
+export const CookieJarOn: Story = {
+  args: {
+    // The cookie jar toggle only shows for HTTP transports; this story
+    // documents the opted-in state where the Inspector replays the server's
+    // Set-Cookie values for sticky-session load balancers.
+    settings: {
+      ...defaultSettings,
+      cookieJar: true,
+    },
   },
 };
 
