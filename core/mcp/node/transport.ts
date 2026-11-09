@@ -165,11 +165,14 @@ export function createTransportNode(
     const trackedFetch = configuredSseFetch
       ? withTracking(withChallengeObserver(configuredSseFetch))
       : fetchWithOptionalAuthIntercept;
-    // Same connection-scoped jar as the Streamable HTTP branch: the SSE GET
-    // stream and the POST endpoint share it, so an affinity cookie delivered
-    // on either response pins the whole session. A caller-supplied
-    // `eventSourceInit.fetch` is wrapped too — the jar is additive, not a
-    // replacement of that fetch's behavior.
+    // Same connection-scoped jar as the Streamable HTTP branch: when on, the
+    // jar wraps the tracked fetch and one instance serves both the SSE GET
+    // stream (`eventSourceInit.fetch`) and the POST endpoint (the transport's
+    // `fetch`), so an affinity cookie delivered on either response pins the
+    // whole session. A caller-supplied `eventSourceInit.fetch` is wrapped too.
+    // When off, the GET stream keeps the tracked (caller-derived or default)
+    // fetch and the POST path stays byte-identical to the pre-jar composition
+    // — see the transport options below.
     const jarredFetch =
       settings?.cookieJar === true
         ? createCookieJarFetch(trackedFetch, url)
@@ -192,7 +195,13 @@ export function createTransportNode(
       authProvider,
       eventSourceInit,
       requestInit,
-      fetch: jarredFetch,
+      // When the jar is off the POST path must be byte-identical to the
+      // pre-jar composition: the challenge-intercepting base fetch. The
+      // jarred (or caller-derived) fetch keeps serving the SSE GET stream.
+      fetch:
+        settings?.cookieJar === true
+          ? jarredFetch
+          : fetchWithOptionalAuthIntercept,
     });
 
     return { transport };
