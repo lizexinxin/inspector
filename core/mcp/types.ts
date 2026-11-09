@@ -1040,6 +1040,18 @@ export interface InspectorServerSettings {
    */
   suppressNotificationStream?: boolean;
   /**
+   * When true, HTTP transports keep a connection-scoped cookie jar: cookies
+   * the server sends via `Set-Cookie` are stored and replayed as `Cookie` on
+   * later requests to the server's origin. This is required to test servers
+   * behind load balancers that route by cookie affinity — without it, every
+   * request of an MCP session can land on a replica that does not hold the
+   * session ("404 Session not found" after a successful `initialize`). The
+   * jar lives for the connection only, is same-origin, and has simplified
+   * host-only semantics — see `createCookieJarFetch`. Default off; takes
+   * effect on the next connect. No effect on stdio transports.
+   */
+  cookieJar?: boolean;
+  /**
    * Maximum number of HTTP fetch requests retained in the Network log for this
    * server. When exceeded, the oldest entries rotate out (and any deferred
    * response body that arrives after its entry rotated out is dropped — see
