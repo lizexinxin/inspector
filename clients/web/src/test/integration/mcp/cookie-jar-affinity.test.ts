@@ -129,7 +129,8 @@ function startAffinityProxy(
     const cookies = String(req.headers.cookie ?? "");
     const match = cookies.match(new RegExp(`${COOKIE}=([^;]+)`));
     const assigned =
-      match?.[1] ?? `pod-${String.fromCharCode(97 + (next++ % replicas.length))}`;
+      match?.[1] ??
+      `pod-${String.fromCharCode(97 + (next++ % replicas.length))}`;
     const target =
       replicas.find((r) => r.pod === assigned)?.server ?? replicas[0].server;
     let body = "";
@@ -145,7 +146,8 @@ function startAffinityProxy(
       })
         .then(async (up) => {
           const outHeaders: Record<string, string> = {
-            "content-type": up.headers.get("content-type") ?? "application/json",
+            "content-type":
+              up.headers.get("content-type") ?? "application/json",
           };
           if (!match) outHeaders["set-cookie"] = `${COOKIE}=${assigned}`;
           res.writeHead(up.status, outHeaders);

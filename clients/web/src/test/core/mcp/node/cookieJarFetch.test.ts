@@ -36,7 +36,10 @@ const SERVER = "https://mcp.example/mcp";
 
 function setup() {
   const baseFetch = vi.fn<typeof fetch>(async () => new Response("ok"));
-  return { baseFetch, fetchFn: createCookieJarFetch(baseFetch, new URL(SERVER)) };
+  return {
+    baseFetch,
+    fetchFn: createCookieJarFetch(baseFetch, new URL(SERVER)),
+  };
 }
 
 function setCookie(...values: string[]): Response {
@@ -62,9 +65,9 @@ describe("createCookieJarFetch", () => {
     baseFetch.mockResolvedValueOnce(setCookie("b=2", "a=1"));
     await fetchFn(SERVER, { method: "POST" });
     await fetchFn(SERVER, { method: "POST" });
-    expect(new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie")).toBe(
-      "b=2; a=1",
-    );
+    expect(
+      new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie"),
+    ).toBe("b=2; a=1");
   });
 
   it("appends to an existing Cookie header instead of replacing it", async () => {
@@ -87,9 +90,9 @@ describe("createCookieJarFetch", () => {
     baseFetch.mockResolvedValueOnce(setCookie("other=x"));
     await fetchFn(SERVER, { method: "POST" });
     await fetchFn(SERVER, { method: "POST" });
-    expect(new Headers(baseFetch.mock.calls[3]?.[1]?.headers).get("cookie")).toBe(
-      "affinity=pod-b; other=x",
-    );
+    expect(
+      new Headers(baseFetch.mock.calls[3]?.[1]?.headers).get("cookie"),
+    ).toBe("affinity=pod-b; other=x");
   });
 
   it.each([
@@ -100,19 +103,23 @@ describe("createCookieJarFetch", () => {
     baseFetch.mockResolvedValueOnce(setCookie(line));
     await fetchFn(SERVER, { method: "POST" });
     await fetchFn(SERVER, { method: "POST" });
-    expect(new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie")).toBeNull();
+    expect(
+      new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie"),
+    ).toBeNull();
   });
 
   it("prefers Max-Age over Expires (RFC 6265 §5.3)", async () => {
     const { baseFetch, fetchFn } = setup();
     baseFetch.mockResolvedValueOnce(
-      setCookie("affinity=pod-a; Max-Age=60; Expires=Thu, 01 Jan 1970 00:00:00 GMT"),
+      setCookie(
+        "affinity=pod-a; Max-Age=60; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+      ),
     );
     await fetchFn(SERVER, { method: "POST" });
     await fetchFn(SERVER, { method: "POST" });
-    expect(new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie")).toBe(
-      "affinity=pod-a",
-    );
+    expect(
+      new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie"),
+    ).toBe("affinity=pod-a");
   });
 
   it("sends no Cookie header while the jar is empty", async () => {
@@ -131,7 +138,9 @@ describe("createCookieJarFetch", () => {
     baseFetch.mockResolvedValueOnce(setCookie(line));
     await fetchFn(SERVER, { method: "POST" });
     await fetchFn(SERVER, { method: "POST" });
-    expect(new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie")).toBeNull();
+    expect(
+      new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie"),
+    ).toBeNull();
   });
 
   it("drops a cookie pair over MAX_COOKIE_BYTES", async () => {
@@ -140,7 +149,9 @@ describe("createCookieJarFetch", () => {
     baseFetch.mockResolvedValueOnce(setCookie(big));
     await fetchFn(SERVER, { method: "POST" });
     await fetchFn(SERVER, { method: "POST" });
-    expect(new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie")).toBeNull();
+    expect(
+      new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie"),
+    ).toBeNull();
   });
 
   it("evicts the oldest cookie past MAX_COOKIES", async () => {
@@ -166,7 +177,9 @@ describe("createCookieJarFetch", () => {
     baseFetch.mockResolvedValueOnce(setCookie("affinity=pod-a"));
     await fetchFn("https://auth.example.com/token", { method: "POST" });
     await fetchFn(SERVER, { method: "POST" });
-    expect(new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie")).toBeNull();
+    expect(
+      new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie"),
+    ).toBeNull();
   });
 
   it("does not replay a same-origin Set-Cookie onto another origin", async () => {
@@ -184,7 +197,9 @@ describe("createCookieJarFetch", () => {
     await fetchFn(new Request(SERVER, { method: "POST", body: "{}" }));
     await fetchFn(new Request(SERVER, { method: "POST", body: "{}" }));
     const second = baseFetch.mock.calls[1];
-    expect(new Headers(second?.[1]?.headers).get("cookie")).toBe("affinity=pod-a");
+    expect(new Headers(second?.[1]?.headers).get("cookie")).toBe(
+      "affinity=pod-a",
+    );
   });
 
   it("tolerates an unparseable request URL", async () => {
@@ -201,6 +216,8 @@ describe("createCookieJarFetch", () => {
     baseFetch.mockResolvedValueOnce(setCookie("affinity=pod-a"));
     await first(SERVER, { method: "POST" });
     await second(SERVER, { method: "POST" });
-    expect(new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie")).toBeNull();
+    expect(
+      new Headers(baseFetch.mock.calls[1]?.[1]?.headers).get("cookie"),
+    ).toBeNull();
   });
 });
