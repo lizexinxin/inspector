@@ -22,6 +22,7 @@ import { exemptMcpEndpoint } from "../../auth/requestTimeout.js";
 import { routeOAuthRequests } from "../../auth/routeOAuthRequests.js";
 import { createNotificationHeadersFetch } from "./notificationHeadersFetch.js";
 import { createSuppressNotificationStreamFetch } from "./suppressNotificationStreamFetch.js";
+import { createCookieJarFetch } from "./cookieJarFetch.js";
 
 /**
  * Build the wire `headers` record from `settings.headers`, dropping rows with
@@ -164,13 +165,22 @@ export function createTransportNode(
     const trackedFetch = configuredSseFetch
       ? withTracking(withChallengeObserver(configuredSseFetch))
       : fetchWithOptionalAuthIntercept;
+    // Same connection-scoped jar as the Streamable HTTP branch: the SSE GET
+    // stream and the POST endpoint share it, so an affinity cookie delivered
+    // on either response pins the whole session. A caller-supplied
+    // `eventSourceInit.fetch` is wrapped too — the jar is additive, not a
+    // replacement of that fetch's behavior.
+    const jarredFetch =
+      settings?.cookieJar === true
+        ? createCookieJarFetch(trackedFetch, url)
+        : trackedFetch;
 
     const headers = headersFromSettings(settings);
 
     const eventSourceInit: Record<string, unknown> = {
       ...sseConfig.eventSourceInit,
       ...(headers && { headers }),
-      fetch: trackedFetch,
+      fetch: jarredFetch,
     };
 
     const requestInit: RequestInit = {
@@ -182,7 +192,7 @@ export function createTransportNode(
       authProvider,
       eventSourceInit,
       requestInit,
-      fetch: fetchWithOptionalAuthIntercept,
+      fetch: jarredFetch,
     });
 
     return { transport };
@@ -204,9 +214,16 @@ export function createTransportNode(
     // it is never sent, and the Network log should not show a request the
     // server never saw (#2317). They touch disjoint requests (notification
     // POSTs vs. the endpoint's SSE GET), so their relative order is free.
-    const stampedFetch = createNotificationHeadersFetch(
-      fetchWithOptionalAuthIntercept,
-    );
+    // The jar wraps the intercepting fetch and sits under the notification
+    // header stamping: injected `Cookie` headers reach the tracker below, so
+    // the Network log records what was actually sent, and a challenge the
+    // interceptor throws on does not feed the jar. Disjoint from the
+    // notification headers (Cookie stamping vs. JSON-RPC notification POSTs).
+    const jarredFetch =
+      settings?.cookieJar === true
+        ? createCookieJarFetch(fetchWithOptionalAuthIntercept, url)
+        : fetchWithOptionalAuthIntercept;
+    const stampedFetch = createNotificationHeadersFetch(jarredFetch);
     const httpFetch =
       settings?.suppressNotificationStream === true
         ? createSuppressNotificationStreamFetch(stampedFetch, url)
