@@ -193,6 +193,13 @@ export type StoredMCPServer = MCPServerConfig & {
    */
   suppressNotificationStream?: boolean;
   /**
+   * When true, HTTP transports keep a connection-scoped cookie jar replaying
+   * the server's `Set-Cookie` values as `Cookie` on later requests to the
+   * server's origin. See {@link InspectorServerSettings.cookieJar}.
+   * Inspector-specific. Omitted on disk when false (the default).
+   */
+  cookieJar?: boolean;
+  /**
    * Per-extension overrides for which extensions the Inspector advertises to
    * this server (keyed by extension id; a present key wins over the registry
    * default). Inspector-specific. Omitted on disk when empty, keeping the file
